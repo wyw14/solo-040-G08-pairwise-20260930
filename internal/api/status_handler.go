@@ -15,6 +15,12 @@ func chambersHandler(runtime *Runtime) http.HandlerFunc {
 
 func interlocksHandler(runtime *Runtime) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		devices := runtime.Telemetry.Devices()
+		devicesByChamber := make(map[string][]any, len(runtime.Chambers))
+		for _, entry := range devices {
+			devicesByChamber[entry.Health.ChamberID] = append(
+				devicesByChamber[entry.Health.ChamberID], entry)
+		}
 		result := make(map[string]any, len(runtime.Chambers))
 		for _, chamberID := range runtime.Chambers {
 			reservation, reserved := runtime.Interlocks.Reservation(chamberID)
@@ -27,6 +33,8 @@ func interlocksHandler(runtime *Runtime) http.HandlerFunc {
 				"emergency":         runtime.Safety.Status(chamberID),
 				"pending_commands":  runtime.GateCommands.Pending(chamberID),
 				"pending_equipment": runtime.Safety.Barrier().Pending(chamberID),
+				"health":            runtime.Health.ChamberStatus(chamberID),
+				"devices":           devicesByChamber[chamberID],
 				"reservation":       reservationValue,
 			}
 		}

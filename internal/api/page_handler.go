@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/wyw14/cry-96/internal/monitor"
 )
 
 func pageHandler(webDirectory, name string) http.HandlerFunc {
@@ -21,15 +23,24 @@ func pageHandler(webDirectory, name string) http.HandlerFunc {
 
 func healthHandler(runtime *Runtime) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		status := http.StatusOK
+		httpStatus := http.StatusOK
+		overall := "ok"
 		for _, chamberID := range runtime.Chambers {
-			if !runtime.Health.AllOnline(chamberID) {
-				status = http.StatusServiceUnavailable
-				break
+			switch runtime.Health.ChamberStatus(chamberID) {
+			case monitor.HealthOffline:
+				httpStatus = http.StatusServiceUnavailable
+				overall = "offline"
+			case monitor.HealthUnknown:
+				if httpStatus == http.StatusOK {
+					httpStatus = http.StatusServiceUnavailable
+				}
+				if overall == "ok" {
+					overall = "unknown"
+				}
 			}
 		}
-		writeJSON(w, status, map[string]any{
-			"status": "ok", "request_id": requestID(r.Context()),
+		writeJSON(w, httpStatus, map[string]any{
+			"status": overall, "request_id": requestID(r.Context()),
 			"devices": runtime.Health.List(), "time": runtime.Now().UTC(),
 		})
 	}

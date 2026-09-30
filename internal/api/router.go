@@ -49,6 +49,8 @@ func Router(runtime *Runtime, webDirectory string) http.Handler {
 		api.Post("/leases/{vesselID}/heartbeat", heartbeatHandler(runtime))
 		api.Post("/leases/{vesselID}/reassign", reassignLeaseHandler(runtime))
 		api.Delete("/leases/{vesselID}", releaseLeaseHandler(runtime))
+		api.Post("/telemetry/heartbeats", telemetryHeartbeatHandler(runtime))
+		api.Get("/telemetry/devices", telemetryDevicesHandler(runtime))
 	})
 	return router
 }
